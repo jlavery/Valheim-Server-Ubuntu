@@ -1,0 +1,93 @@
+This will be the first method I try, hopefully it will be successful... found at https://gameplay.tips/guides/9765-valheim.html written by  Griffen8280
+
+
+Step 1: Create 'steam' user:
+#useradd -m steam
+
+Go to home folder:
+#cd /home/steam
+
+Install SteamCMD:
+#sudo apt install steamcmd
+
+If you're using a 64-bit operating system you will also need to add multiverse:
+#sudo add-apt-repository multiverse
+#sudo dpkg --add-architecture i386
+#sudo apt update
+#sudo apt install lib32gcc1 steamcmd 
+
+Link the SteamCMD executable:
+#ln -s /usr/games/steamcmd steamcmd
+
+Step 2: Install server files
+#cd /steam/home 
+#mkdir valheim
+
+#/home/steam/.steam/steamcmd/steamcmd.sh +login anonymous +force_install_dir
+/home/steam/Valheim +app_update 896660 validate +exit
+
+Step 3: Modify the server start script
+#cd valheim
+#ls
+#cp start_server.sh start_valheim.sh
+#nano start_valheim.sh
+
+#!/bin/bash
+
+export templdpath=$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=./linux64:$LD_LIBRARY_PATH
+export SteamAppId=892970
+/home/username/.steam/steamcmd/steamcmd.sh +login anonymous +force_install_dir /home/username/Valheim +app_update 896660 +quit
+
+./valheim_server.x86_64 -name "Your Server Name" -port 2456 -world "Dedicated" -password "Your Password" -public 1 > /dev/null &
+
+export LD_LIBRARY_PATH=$templdpath
+
+echo "Server started"
+echo ""
+#read -p "Press RETURN to stop server"
+#echo 1 > server_exit.drp
+
+#echo "Server exit signal set"
+#echo "You can now close this terminal"
+
+while :
+do
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+echo "valheim.service: timestamp ${TIMESTAMP}"
+sleep 60
+done
+
+
+
+Step 4: Create and register the service
+
+#nano valheim.service
+
+[Unit]
+Description=Valheim service
+Wants=network.target
+After=syslog.target network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=10
+User=username
+WorkingDirectory=/home/username/Valheim
+ExecStart=/home/username/Valheim/start_valheim.sh
+
+[Install]
+WantedBy=multi-user.target
+
+#sudo cp valheim.service /etc/systemd/system
+#sudo systemctl daemon-reload
+#sudo systemctl start valheim
+#sudo systemctl status valheim
+#sudo systemctl enable valheim.service
+
+Step 5: Auto Server Updates
+#sudo crontab -e
+0 2 * * * apt update && apt upgrade -y
+30 2 * * * reboot
+30 3 * * * apt autoremove && apt clean
